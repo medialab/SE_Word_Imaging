@@ -1,0 +1,95 @@
+
+<head>
+
+<meta charset="UTF-8">
+<style>
+	#image {height:80%;}
+	#text {font-size:50px;font-family: helvetica;}
+	#loader {text-align:center;}
+</style>
+<script>
+
+
+function loadJSON(path, success, error)
+{
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function()
+    {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+                if (success)
+                    success(JSON.parse(xhr.responseText));
+            } else {
+                if (error)
+                    error(xhr);
+            }
+        }
+    };
+    xhr.open("GET", path, true);
+    xhr.send();
+}
+
+	function preloadimages(arr){
+    var newimages=[], loadedimages=0
+    var postaction=function(){}
+    var arr=(typeof arr!="object")? [arr] : arr
+    function imageloadpost(){
+        loadedimages++
+        document.body.querySelector('#message').innerHTML="preloaded "+(loadedimages/data.length*100)+"% of images"   
+        if (loadedimages==arr.length){
+            postaction(newimages) //call postaction and pass in newimages array as parameter
+        }
+    }
+    for (var i=0; i<arr.length; i++){
+        newimages[i]=new Image()
+        newimages[i].id="image"
+        newimages[i].src=arr[i]
+        newimages[i].onload=function(){
+            imageloadpost()
+        }
+        newimages[i].onerror=function(){
+            imageloadpost()
+        }
+    }
+    return { //return blank object with done() method
+        done:function(f){
+            postaction=f || postaction //remember user defined callback functions to be called when images load
+        }
+    }
+}
+ 
+	var data=[]
+// 	loadJSON('weare.json',
+//          function(d) { data=d; preloadimages(data.map(function(e){return e.img_url})).done(function(imgs){
+//  		read(imgs);
+//  	});},
+//          function(xhr) { console.error(xhr); }
+// );
+
+	
+	
+
+	var playhead=0;
+	function read(loaded_images)
+	{
+		console.log(loaded_images)
+		current=data[playhead];
+		
+		document.body.replaceChild(loaded_images[playhead],document.getElementById("image"));
+		document.getElementById("text").innerHTML=current.word;
+		console.log("image ",playhead,current);
+		playhead+=1
+		if(playhead<data.length)
+			setTimeout(read,current.l,loaded_images);
+
+	}
+
+</script>
+<script defer src="js/draganddrop.js"></script>
+</head>
+<body onload="" style="height:100%;width:100%;text-align:center">
+<p><img id="loader" src="loader.gif" style="display:none"><span id="message">drag and drop a json file with rébus data </span>
+</p>
+<img id='image' height="80%">
+<div id="text"></div>
+</body>
