@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<?xml version="1.0" encoding="UTF-8"?>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+  <title>SE Word Imaging</title>
+</head>
+<body>
+Search: <input type="text" onchange="load()" value="" name="query"/>
+<br/>
+<img src=""/>
+
+<script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+<script>
+var load = function(){
+  var query = encodeURIComponent($('input').val());
+  $.getJSON('https://searx.me/?q=' + query + '&pageno=1&category_images&format=json')
+   .then(function(a){
+     $('img').attr('src', a['results'][0]['img_src']);
+   });
+}
+</script>
+</body>
+</html>
