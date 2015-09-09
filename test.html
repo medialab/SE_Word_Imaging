@@ -5,21 +5,70 @@
   <meta charset="utf-8">
   <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
   <title>SE Word Imaging</title>
+  <!--link rel="stylesheet" type="text/css" href="css/style.css"-->
 </head>
 <body>
-Search: <input type="text" onchange="load()" value="" name="query"/>
+Search song: <input type="text" onchange="load()" value="" name="query"/>
 <br/>
-<img src=""/>
+<ul id="files"></ul>
+<div id="lyrics" style="position: fixed; top: 0; right: 0; height: 100%;"></div>
 
-<script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+<h3></h3>
+<img src="" height="600"/>
+
+<script type="text/javascript" src="jquery-2.1.4.min.js"></script>
 <script>
+var songsLyrics = {},
+    exprImgs = {};
 var load = function(){
   var query = encodeURIComponent($('input').val());
-  $.getJSON('https://searx.me/?q=' + query + '&pageno=1&category_images&format=json')
-   .then(function(a){
-     $('img').attr('src', a['results'][0]['img_src']);
-   });
-}
+  $.getJSON('https://searx.me/?q=filetype%3Alrc%20' + query + '&categories=general&format=json')
+  .then(function(searchResults){
+    searchResults['results'].forEach(function(res){
+      $('ul').empty();
+      $.getJSON('https://query.yahooapis.com/v1/public/yql', {
+        q: 'select * from html where url="' + res['url'] + '"',
+        format: "json"
+      })
+      .then(function(yqlRes){
+        if (yqlRes['query'] && yqlRes['query']['results'] && yqlRes['query']['results']['body']){
+          songsLyrics[res['url']] = yqlRes['query']['results']['body'];
+          $('ul').append('<li onClick="loadLRC(' + "'" + res['url'] + "'" + ')">' + res['title'] + '</li>')
+        }
+      });
+    });
+  });
+};
+var loadLRC = function(lrcUrl){
+  var lyrics = songsLyrics[lrcUrl]
+    .split(/\r/)
+    .filter(function(l){
+      console.log(l);
+      return l.trim().match(/^\[\d/);
+    }).map(function(l){
+      return l.trim();
+    });
+  $('#lyrics').html(lyrics.join('<br/>'));
+  loadNextImg(lyrics);
+};
+var loadNextImg = function(exprArr){
+  var expr = exprArr.shift();
+  expr = expr.replace(/^\[.*?\]\s*/, '');
+  if (exprImgs[expr]) showImg(expr, exprArr);
+  else $.getJSON('https://searx.me/?q=' + encodeURIComponent(expr) + '&pageno=1&category_images&format=json')
+  .then(function(searchResults){
+    console.log("GOT", expr);
+    exprImgs[expr] = searchResults['results'][0]['img_src'];
+    showImg(expr, exprArr);
+  });
+};
+var showImg = function(expr, exprArr){
+  $('h3').text(expr);
+  $('img').attr('src', exprImgs[expr]);
+  if (exprArr) setTimeout(function(){
+    loadNextImg(exprArr);
+  }, 500);
+};
 </script>
 </body>
 </html>
