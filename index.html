@@ -1,16 +1,74 @@
-
-
+<!DOCTYPE html>
+<?xml version="1.0" encoding="UTF-8"?>
 <html>
+<head>
+  <meta charset="utf-8">
+  <meta content="text/html; charset=utf-8" http-equiv="content-type"/>
+  <title>SE Word Imaging</title>
+  <!--link rel="stylesheet" type="text/css" href="css/style.css"-->
+</head>
 <body>
-1- add this <a href='javascript: (function(){var t={scriptUrl:"https://medialab.github.io/SE_Word_Imaging/artoo_rebus_image.js"},e=!0;if("object"==typeof this.artoo&&(artoo.settings.reload||(artoo.log.verbose("artoo already exists within this page. No need to inject him again."),artoo.loadSettings(t),artoo.exec(),e=!1)),e){var o=document.getElementsByTagName("body")[0];o||(o=document.createElement("body"),document.documentElement.appendChild(o));var a=document.createElement("script");console.log("artoo.js is loading..."),a.src="//medialab.github.io/artoo/public/dist/artoo-latest.min.js",a.type="text/javascript",a.id="artoo_injected_script",a.setAttribute("settings",JSON.stringify(t)),o.appendChild(a)}}).call(this);'>SE Word Imaging bookmarklet</a> to your bookmark bar (drag and drop) <br>
-2- go to <a href="https://www.google.fr/search?q=%22SE+word+imaging%22&source=lnms&tbm=isch" target="blank">this page</a><br>
-3- click on SE Word Imaging bookmarklet<br>
-4- edit the text of your song<br>
-5- click go, observe and check that you downloaded a data.json file<br>
-6- open <a href="player.html" target="blank">the player</a><br>
-7- drag and drop the data.json filt in the player web page<br>
-8- enjoy
+Search song: <input type="text" onchange="load()" value="" name="query"/>
+<br/>
+<ul id="files"></ul>
+<div id="lyrics" style="position: fixed; top: 0; right: 0; height: 100%;"></div>
 
+<h3></h3>
+<img src="" height="600"/>
+
+<script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+<script>
+var songsLyrics = {},
+    exprImgs = {};
+var load = function(){
+  var query = encodeURIComponent($('input').val());
+  $.getJSON('https://searx.me/?q=filetype%3Alrc%20' + query + '&categories=general&format=json')
+  .then(function(searchResults){
+    searchResults['results'].forEach(function(res){
+      $('ul').empty();
+      $.getJSON('https://query.yahooapis.com/v1/public/yql', {
+        q: 'select * from html where url="' + res['url'] + '"',
+        format: "json"
+      })
+      .then(function(yqlRes){
+        if (yqlRes['query'] && yqlRes['query']['results'] && yqlRes['query']['results']['body']){
+          songsLyrics[res['url']] = yqlRes['query']['results']['body'];
+          $('ul').append('<li onClick="loadLRC(' + "'" + res['url'] + "'" + ')">' + res['title'] + '</li>')
+        }
+      });
+    });
+  });
+};
+var loadLRC = function(lrcUrl){
+  var lyrics = songsLyrics[lrcUrl]
+    .split(/\r/)
+    .filter(function(l){
+      console.log(l);
+      return l.trim().match(/^\[\d/);
+    }).map(function(l){
+      return l.trim();
+    });
+  $('#lyrics').html(lyrics.join('<br/>'));
+  loadNextImg(lyrics);
+};
+var loadNextImg = function(exprArr){
+  var expr = exprArr.shift();
+  expr = expr.replace(/^\[.*?\]\s*/, '');
+  if (exprImgs[expr]) showImg(expr, exprArr);
+  else $.getJSON('https://searx.me/?q=' + encodeURIComponent(expr) + '&pageno=1&category_images&format=json')
+  .then(function(searchResults){
+    console.log("GOT", expr);
+    exprImgs[expr] = searchResults['results'][0]['img_src'];
+    showImg(expr, exprArr);
+  });
+};
+var showImg = function(expr, exprArr){
+  $('h3').text(expr);
+  $('img').attr('src', exprImgs[expr]);
+  if (exprArr) setTimeout(function(){
+    loadNextImg(exprArr);
+  }, 500);
+};
+</script>
 </body>
 </html>
-
