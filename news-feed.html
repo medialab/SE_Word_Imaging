@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <title>demo</title>
   <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
+  <script src="http://code.responsivevoice.org/responsivevoice.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
+  <script src="speakClient.js"></script>
 </head>
 <body>
 <style type="text/css">
@@ -39,6 +42,8 @@ body, html {
 
 <h1 class="text"></h1>
 <img id="show" src="" width="100%">
+<div id="audio"></div>
+
 <script>
 
 var feed = "http://rss.lemonde.fr/c/205/f/3050/index.rss";
@@ -56,25 +61,43 @@ $.getJSON('https://query.yahooapis.com/v1/public/yql', {
   }).value()
   nextImage()
 })
+
 function nextImage(){
   var current = data[curNews].words[curWord];
+
   $.getJSON('https://searx.me/?q=' + encodeURIComponent(current) + '&pageno=1&category_images&format=json')
     .then(function(searchResults){
       // console.log(searchResults)
       $('#show').css('background-image', "url("+searchResults.results[0].img_src+")");
       $('.text').text(current)
 
+      // version with responsiveVoice
+      responsiveVoice.speak(current, 'French Female');
+      
+      //version with speak.js
+      // speak(current, {
+      //   voice: "fr",
+      //   variant: "f5",
+      //   amplitude: 100,
+      //   pitch: 100, 
+      //   speed: 100
+      // });
+
       curWord++;
       console.log(curNews,curWord, data[curNews].words.length)
-      if( curWord > data[curNews].words.length-1 ){
 
+      // Ath the end of citation, put a black screen
+      // if (curWord === data[curNews].words.length)
+      // {
+      //   $('#show').css('background-color', "black");
+      //   $('.text').text("THE END");
+      // }
+      if( curWord > data[curNews].words.length-1 ){
         curNews++;
         curWord = 0;
-
-        setTimeout(nextImage, 2500);
-
+        setTimeout(nextImage, 0);
       }else {
-        setTimeout(nextImage, 2500);
+        setTimeout(nextImage, 0);
       }
   });
 }
