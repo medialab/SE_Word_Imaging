@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="http://code.responsivevoice.org/responsivevoice.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
+</head>
+<body>
+<button onclick="test()">Touch Me !</button>
+<textarea id="myTextBox"></textarea>
+<script type="text/javascript">
+	function test() {
+		responsiveVoice.speak($('#myTextBox').val());
+	}
+</script>
+</body>
+</html>

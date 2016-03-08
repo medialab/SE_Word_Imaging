@@ -7,6 +7,7 @@
   <script src="http://code.responsivevoice.org/responsivevoice.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-beta1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/async/1.5.2/async.min.js"></script>
   <script src="speakClient.js"></script>
 </head>
 <body>
@@ -38,68 +39,120 @@ body, html {
     text-shadow: rgb(0, 0, 0) 4px 0px 0px, rgb(0, 0, 0) 3.87565px 0.989616px 0px, rgb(0, 0, 0) 3.51033px 1.9177px 0px, rgb(0, 0, 0) 2.92676px 2.72656px 0px, rgb(0, 0, 0) 2.16121px 3.36588px 0px, rgb(0, 0, 0) 1.26129px 3.79594px 0px, rgb(0, 0, 0) 0.282949px 3.98998px 0px, rgb(0, 0, 0) -0.712984px 3.93594px 0px, rgb(0, 0, 0) -1.66459px 3.63719px 0px, rgb(0, 0, 0) -2.51269px 3.11229px 0px, rgb(0, 0, 0) -3.20457px 2.39389px 0px, rgb(0, 0, 0) -3.69721px 1.52664px 0px, rgb(0, 0, 0) -3.95997px 0.56448px 0px, rgb(0, 0, 0) -3.97652px -0.432781px 0px, rgb(0, 0, 0) -3.74583px -1.40313px 0px, rgb(0, 0, 0) -3.28224px -2.28625px 0px, rgb(0, 0, 0) -2.61457px -3.02721px 0px, rgb(0, 0, 0) -1.78435px -3.57996px 0px, rgb(0, 0, 0) -0.843183px -3.91012px 0px, rgb(0, 0, 0) 0.150409px -3.99717px 0px, rgb(0, 0, 0) 1.13465px -3.8357px 0px, rgb(0, 0, 0) 2.04834px -3.43574px 0px, rgb(0, 0, 0) 2.83468px -2.82216px 0px, rgb(0, 0, 0) 3.44477px -2.03312px 0px, rgb(0, 0, 0) 3.84068px -1.11766px 0px, rgb(0, 0, 0) 3.9978px -0.132717px 0px;
 
   }
+  .hidden {
+    display: none;
+  }
+
+  #loader {
+
+    position: absolute;
+    top:50%;
+    left: 50%;
+  }
 </style>
 
 <h1 class="text"></h1>
 <img id="show" src="" width="100%">
+
+<img id="loader" src="ajax-loader.gif" >
 <div id="audio"></div>
 
 <script>
 
-var feed = "http://rss.lemonde.fr/c/205/f/3050/index.rss";
-var curWord = 0, curNews= 0, data;
+var dict = {'le' : true
+          , 'la' : true
+          , 'les' : true
+          , 'l\'' : true
+          , 'un' : true
+          , 'une' : true
+          , 'des' : true
+          , 'd' : true
+          , 'du' : true
+          }
 
+var feed = "http://rss.lemonde.fr/c/205/f/3050/index.rss";
+var data, curWordId = 0, curWords, curArtId = 0;
+
+// get RSS FEED
 $.getJSON('https://query.yahooapis.com/v1/public/yql', {
     q: 'select * from feed where url="' + feed + '"',
     format: "json"
 },function(res){
+
+
   data = _(res.query.results.item).map(function(d){
-  return {
+    return {
       title: d.title,
       words: d.title.split(" ")
     }
-  }).value()
-  nextImage()
+  }).value();
+
+
+  getPictures(data[curArtId]);
+
 })
 
-function nextImage(){
-  var current = data[curNews].words[curWord];
 
-  $.getJSON('https://searx.me/?q=' + encodeURIComponent(current) + '&pageno=1&category_images&format=json')
-    .then(function(searchResults){
-      // console.log(searchResults)
-      $('#show').css('background-image', "url("+searchResults.results[0].img_src+")");
-      $('.text').text(current)
 
-      // version with responsiveVoice
-      responsiveVoice.speak(current, 'French Female');
-      
-      //version with speak.js
-      // speak(current, {
-      //   voice: "fr",
-      //   variant: "f5",
-      //   amplitude: 100,
-      //   pitch: 100, 
-      //   speed: 100
-      // });
+function getPictures(item){
 
-      curWord++;
-      console.log(curNews,curWord, data[curNews].words.length)
+  $('.text').text('');
 
-      // Ath the end of citation, put a black screen
-      // if (curWord === data[curNews].words.length)
-      // {
-      //   $('#show').css('background-color', "black");
-      //   $('.text').text("THE END");
-      // }
-      if( curWord > data[curNews].words.length-1 ){
-        curNews++;
-        curWord = 0;
-        setTimeout(nextImage, 0);
-      }else {
-        setTimeout(nextImage, 0);
-      }
+  $('#loader').removeClass('hidden');
+  $('#show').css('background-image', "none");
+
+  async.map(item.words, function(word, next, id){
+    $.getJSON('https://searx.me/?q=' + encodeURIComponent(word) + '&pageno=1&category_images&format=json')
+      .always(function(searchResults, err){
+        // console.log("word", word);
+        console.log(err, searchResults);
+
+        var res = (err === "error" ? 'none' : searchResults.results[0]);
+
+        // check if word is in the dictionnary and add it to the next word
+
+        // if (dict[word] === true)
+        // {
+
+        // }
+
+
+        next(null, {
+          id: id,
+          text: word,
+          result: res
+        })
+      })
+  }, function(err, words){
+
+    curWords = _.sortBy(words,'id');
+    nextWord();
+    $('#loader').addClass('hidden');
+
+
   });
+}
+
+function nextWord(){
+
+  var word = curWords[curWordId];
+
+  console.log('currentWord', word);
+  if (curWordId > curWords.length - 1) {
+    curArtId++;
+    getPictures(data[curArtId])
+    curWordId = 0;
+
+  }
+  else {
+    responsiveVoice.speak(word.text, 'French Female', {onend: nextWord} );
+    curWordId++;
+
+    $('#show').css('background-image', "url("+word.result.img_src+")");
+    $('.text').text(word.text);
+  }
+
+
 }
 </script>
 </body>
