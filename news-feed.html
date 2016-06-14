@@ -92,7 +92,9 @@ $.getJSON('https://query.yahooapis.com/v1/public/yql', {
 
 })
 
-
+window.callback = function (data) {
+  console.log(data)
+}
 
 function getPictures(item){
 
@@ -101,35 +103,58 @@ function getPictures(item){
   $('#loader').removeClass('hidden');
   $('#show').css('background-image', "none");
 
-  async.map(item.words, function(word, next, id){
-    $.getJSON('https://searx.me/?q=' + encodeURIComponent(word) + '&pageno=1&category_images&format=json')
+  var words = item.words;
+  var i = 0;
+
+  /*setInterval(function () {
+    $.getJSON('https://searx.me/?q=' + encodeURIComponent(words[i]) + '&pageno=1&category_images&format=json')
       .always(function(searchResults, err){
+        i++;
         // console.log("word", word);
-        console.log(err, searchResults);
+        console.log(err, searchResults.);
 
         var res = (err === "error" ? 'none' : searchResults.results[0]);
+      })
+  }, 10000);*/
+  async.map(item.words, function(word, next, id){
+    //$.getJSON('https://searx.me/?q=' + encodeURIComponent(word) + '&pageno=1&category_images&format=json')
+    $.ajax({
+        dataType: 'json',
+        url: 'https://duckduckgo.com/i.js?l=wt-wt&o=json&q=' + encodeURIComponent(word) + '&f=',
+        success: function(data) {
+          console.log('data');
+          console.log(data);
+          next(null, {
+            id: id,
+            text: word,
+            result: res
+          })
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+          console.log(jqXHR)
+          console.log(errorThrown);
+          console.log(textStatus);
+        }
+    });
 
-        // check if word is in the dictionnary and add it to the next word
+    /*$.getJSON('https://duckduckgo.com/i.js?l=wt-wt&o=json&q=' + encodeURIComponent(word) + '&f=&callback=?')
+      .always(function(searchResults, err){
+        // console.log("word", word);
+        //console.log(err, searchResults);
+        console.log(searchResults, err)
 
-        // if (dict[word] === true)
-        // {
-
-        // }
-
+        var res = (err === "error" ? 'none' : searchResults.results[0]);
 
         next(null, {
           id: id,
           text: word,
           result: res
         })
-      })
+      })*/
   }, function(err, words){
-
     curWords = _.sortBy(words,'id');
     nextWord();
     $('#loader').addClass('hidden');
-
-
   });
 }
 
